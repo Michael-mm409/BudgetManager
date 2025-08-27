@@ -1,0 +1,5 @@
+MAX_AMOUNT = 1_000_000_000.0
+DECIMALS = 2
+ERROR_STYLE = "border:1px solid red"
+
+__all__ = ["MAX_AMOUNT", "DECIMALS", "ERROR_STYLE"]

@@ -140,6 +140,34 @@ class CategoryRepository:
         )
 
 
+def save_category_plans(
+    expense_plans: Dict[str, float],
+    income_plans: Dict[str, float],
+    expense_order: List[str] | None = None,
+    income_order: List[str] | None = None,
+) -> Path:
+    """Persist category planned amounts to the user config CSV.
+
+    Only non-"Totals" categories are written. If order lists are provided they
+    determine the write order; otherwise dictionary iteration order is used.
+    Returns path to the saved file.
+    """
+    USER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    rows: List[tuple[str, str, float]] = []
+    exp_keys = [c for c in (expense_order or expense_plans.keys()) if c != "Totals"]
+    inc_keys = [c for c in (income_order or income_plans.keys()) if c != "Totals"]
+    for cat in exp_keys:
+        rows.append(("expense", cat, float(expense_plans.get(cat, 0.0))))
+    for cat in inc_keys:
+        rows.append(("income", cat, float(income_plans.get(cat, 0.0))))
+    with USER_CONFIG_FILE.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["type", "category", "planned"])
+        for r in rows:
+            writer.writerow(r)
+    return USER_CONFIG_FILE
+
+
 def get_active_categories_file() -> Path:
     repo = CategoryRepository(auto_create=False)
     return repo.csv_path
