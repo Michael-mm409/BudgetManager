@@ -1,0 +1,4 @@
+# Keep this directory for default packaged data but ignore runtime DB
+*.db
+!categories.csv
+!.gitignore
