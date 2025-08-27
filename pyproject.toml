@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "budget-manager"
+version = "0.1.0"
+description = "Desktop budgeting app with planned vs actual summaries (PyQt6)."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Michael", email = "example@example.com" }
+]
+license = { text = "MIT" }
+keywords = ["budget", "personal-finance", "pyqt", "desktop-app"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Intended Audience :: End Users/Desktop",
+  "Topic :: Office/Business :: Financial :: Accounting"
+]
+dependencies = [
+  "PyQt6",
+  "pandas"
+]
+ [project.optional-dependencies]
+ dev = ["pytest"]
+
+[project.scripts]
+ budget-app = "main:main"
+
+[project.urls]
+ homepage = "https://example.com/your-budget-app"
+ repository = "https://example.com/your-repo.git"
+ issues = "https://example.com/your-repo/issues"
