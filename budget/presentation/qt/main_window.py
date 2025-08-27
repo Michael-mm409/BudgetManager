@@ -4,6 +4,7 @@ import sys
 
 import pandas as pd
 from PyQt6.QtCore import QDate
+from PyQt6.QtGui import QDoubleValidator
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -73,7 +74,7 @@ class BudgetMainWindow(QMainWindow):
         tab = QWidget()
         layout = QHBoxLayout(tab)
 
-        # Expenses
+        # Expenses column -------------------------------------------------
         exp_col = QVBoxLayout()
         exp_col.addWidget(QLabel("Expenses"))
         self.expenses_table_model = PandasModel(self.expenses_df)
@@ -118,7 +119,7 @@ class BudgetMainWindow(QMainWindow):
         exp_col.addLayout(exp_form)
         layout.addLayout(exp_col)
 
-        # Income
+        # Income column ---------------------------------------------------
         inc_col = QVBoxLayout()
         inc_col.addWidget(QLabel("Income"))
         self.income_table_model = PandasModel(self.income_df)
@@ -163,7 +164,41 @@ class BudgetMainWindow(QMainWindow):
         inc_col.addLayout(inc_form)
         layout.addLayout(inc_col)
 
-        # Helpers
+        # Validation helpers ----------------------------------------------
+        amt_validator = QDoubleValidator(0.0, 1_000_000_000.0, 2, self)
+        self.exp_amount.setValidator(amt_validator)
+        self.inc_amount.setValidator(amt_validator)
+
+        def _clear_error(widget):
+            widget.setStyleSheet("")
+
+        def _mark_error(widget):
+            widget.setStyleSheet("border:1px solid red")
+
+        def _validate_amount(edit: QLineEdit) -> float | None:
+            text = edit.text().strip()
+            if not text:
+                _mark_error(edit)
+                return None
+            try:
+                val = float(text)
+            except ValueError:
+                _mark_error(edit)
+                return None
+            if val < 0:
+                _mark_error(edit)
+                return None
+            _clear_error(edit)
+            return val
+
+        def _validate_date(d_edit: QDateEdit) -> QDate | None:
+            d = d_edit.date()
+            if not d.isValid() or d > QDate.currentDate():
+                _mark_error(d_edit)
+                return None
+            _clear_error(d_edit)
+            return d
+
         def _selected_row_id(table: QTableView, df: pd.DataFrame) -> int | None:
             sel = table.selectionModel()
             if sel is None:
@@ -222,21 +257,24 @@ class BudgetMainWindow(QMainWindow):
                     out.append(f"• {s}")
             edit.setPlainText("\n".join(out))
 
-        # Signals
+        # Signals ---------------------------------------------------------
         self.expenses_table.selectionModel().selectionChanged.connect(lambda *_: _populate("exp"))  # type: ignore[arg-type]
         self.income_table.selectionModel().selectionChanged.connect(lambda *_: _populate("inc"))  # type: ignore[arg-type]
         exp_bullets_btn.clicked.connect(lambda: _apply_bullets(self.exp_desc))  # type: ignore[arg-type]
         inc_bullets_btn.clicked.connect(lambda: _apply_bullets(self.inc_desc))  # type: ignore[arg-type]
 
-        # CRUD
+        # CRUD handlers ---------------------------------------------------
         def add_expense() -> None:
-            try:
-                amt = float(self.exp_amount.text())
-            except ValueError:
-                self.exp_amount.setStyleSheet("border:1px solid red")
+            date_q = _validate_date(self.exp_date)
+            amt = _validate_amount(self.exp_amount)
+            if date_q is None or amt is None:
+                QMessageBox.warning(self, "Invalid Data", "Fix highlighted fields before adding expense.")
                 return
             insert_expense(
-                self.exp_date.date().toPyDate(), amt, self.exp_desc.toPlainText(), self.exp_cat.currentText() or "Other"
+                date_q.toPyDate(),
+                amt,
+                self.exp_desc.toPlainText(),
+                self.exp_cat.currentText() or "Other",
             )
             self.reload_and_refresh()
 
@@ -245,14 +283,14 @@ class BudgetMainWindow(QMainWindow):
             if rid is None:
                 QMessageBox.information(self, "Update Expense", "Select a row first")
                 return
-            try:
-                amt = float(self.exp_amount.text())
-            except ValueError:
-                self.exp_amount.setStyleSheet("border:1px solid red")
+            date_q = _validate_date(self.exp_date)
+            amt = _validate_amount(self.exp_amount)
+            if date_q is None or amt is None:
+                QMessageBox.warning(self, "Invalid Data", "Fix highlighted fields before updating expense.")
                 return
             update_expense(
                 rid,
-                self.exp_date.date().toPyDate(),
+                date_q.toPyDate(),
                 amt,
                 self.exp_desc.toPlainText(),
                 self.exp_cat.currentText() or "Other",
@@ -270,13 +308,16 @@ class BudgetMainWindow(QMainWindow):
             self.reload_and_refresh()
 
         def add_income() -> None:
-            try:
-                amt = float(self.inc_amount.text())
-            except ValueError:
-                self.inc_amount.setStyleSheet("border:1px solid red")
+            date_q = _validate_date(self.inc_date)
+            amt = _validate_amount(self.inc_amount)
+            if date_q is None or amt is None:
+                QMessageBox.warning(self, "Invalid Data", "Fix highlighted fields before adding income.")
                 return
             insert_income(
-                self.inc_date.date().toPyDate(), amt, self.inc_desc.toPlainText(), self.inc_cat.currentText() or "Other"
+                date_q.toPyDate(),
+                amt,
+                self.inc_desc.toPlainText(),
+                self.inc_cat.currentText() or "Other",
             )
             self.reload_and_refresh()
 
@@ -285,14 +326,14 @@ class BudgetMainWindow(QMainWindow):
             if rid is None:
                 QMessageBox.information(self, "Update Income", "Select a row first")
                 return
-            try:
-                amt = float(self.inc_amount.text())
-            except ValueError:
-                self.inc_amount.setStyleSheet("border:1px solid red")
+            date_q = _validate_date(self.inc_date)
+            amt = _validate_amount(self.inc_amount)
+            if date_q is None or amt is None:
+                QMessageBox.warning(self, "Invalid Data", "Fix highlighted fields before updating income.")
                 return
             update_income(
                 rid,
-                self.inc_date.date().toPyDate(),
+                date_q.toPyDate(),
                 amt,
                 self.inc_desc.toPlainText(),
                 self.inc_cat.currentText() or "Other",
